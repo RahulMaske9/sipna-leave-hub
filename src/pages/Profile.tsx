@@ -49,6 +49,15 @@ interface Education {
   grade?: string;
 }
 
+interface Achievement {
+  id: string;
+  title: string;
+  organization: string;
+  date: string;
+  category: 'Academic' | 'Research' | 'Teaching' | 'Leadership' | 'Other';
+  description: string;
+}
+
 interface UserProfile {
   bio: string;
   phone: string;
@@ -56,6 +65,7 @@ interface UserProfile {
   skills: Skill[];
   experience: Experience[];
   education: Education[];
+  achievements: Achievement[];
 }
 
 export default function Profile() {
@@ -67,12 +77,14 @@ export default function Profile() {
     location: '',
     skills: [],
     experience: [],
-    education: []
+    education: [],
+    achievements: []
   });
 
   const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false);
   const [isExperienceDialogOpen, setIsExperienceDialogOpen] = useState(false);
   const [isEducationDialogOpen, setIsEducationDialogOpen] = useState(false);
+  const [isAchievementDialogOpen, setIsAchievementDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
 
   // Load profile data from localStorage
@@ -173,6 +185,44 @@ export default function Profile() {
     };
     saveProfile(updatedProfile);
     toast({ title: "Experience removed successfully!" });
+  };
+
+  const addAchievement = (achievementData: Omit<Achievement, 'id'>) => {
+    const newAchievement: Achievement = {
+      ...achievementData,
+      id: Date.now().toString()
+    };
+    const updatedProfile = {
+      ...profile,
+      achievements: [...profile.achievements, newAchievement]
+    };
+    saveProfile(updatedProfile);
+    setIsAchievementDialogOpen(false);
+    toast({ title: "Achievement added successfully!" });
+  };
+
+  const updateAchievement = (achievementId: string, achievementData: Omit<Achievement, 'id'>) => {
+    const updatedProfile = {
+      ...profile,
+      achievements: profile.achievements.map(achievement => 
+        achievement.id === achievementId 
+          ? { ...achievement, ...achievementData }
+          : achievement
+      )
+    };
+    saveProfile(updatedProfile);
+    setIsAchievementDialogOpen(false);
+    setEditingItem(null);
+    toast({ title: "Achievement updated successfully!" });
+  };
+
+  const deleteAchievement = (achievementId: string) => {
+    const updatedProfile = {
+      ...profile,
+      achievements: profile.achievements.filter(achievement => achievement.id !== achievementId)
+    };
+    saveProfile(updatedProfile);
+    toast({ title: "Achievement removed successfully!" });
   };
 
   return (
@@ -412,6 +462,87 @@ export default function Profile() {
             )}
           </CardContent>
         </Card>
+
+        {/* Achievements Section */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5" />
+              Achievements & Awards
+            </CardTitle>
+            <Dialog open={isAchievementDialogOpen} onOpenChange={setIsAchievementDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  size="sm"
+                  onClick={() => {
+                    setEditingItem(null);
+                    setIsAchievementDialogOpen(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Achievement
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>{editingItem ? 'Edit Achievement' : 'Add New Achievement'}</DialogTitle>
+                </DialogHeader>
+                <AchievementForm
+                  achievement={editingItem}
+                  onSave={editingItem ? 
+                    (data) => updateAchievement(editingItem.id, data) : 
+                    addAchievement
+                  }
+                />
+              </DialogContent>
+            </Dialog>
+          </CardHeader>
+          <CardContent>
+            {profile.achievements.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">No achievements added yet</p>
+            ) : (
+              <div className="space-y-4">
+                {profile.achievements.map((achievement) => (
+                  <div key={achievement.id} className="p-4 border rounded-lg">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium">{achievement.title}</h4>
+                          <Badge variant="secondary">{achievement.category}</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{achievement.organization}</p>
+                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(achievement.date).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditingItem(achievement);
+                            setIsAchievementDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => deleteAchievement(achievement.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-sm">{achievement.description}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
@@ -459,6 +590,89 @@ function SkillForm({ skill, onSave }: { skill?: Skill; onSave: (data: Omit<Skill
       </div>
       <div className="flex justify-end gap-2">
         <Button type="submit">Save Skill</Button>
+      </div>
+    </form>
+  );
+}
+
+// Achievement Form Component
+function AchievementForm({ achievement, onSave }: { achievement?: Achievement; onSave: (data: Omit<Achievement, 'id'>) => void }) {
+  const [formData, setFormData] = useState({
+    title: achievement?.title || '',
+    organization: achievement?.organization || '',
+    date: achievement?.date || '',
+    category: achievement?.category || 'Academic' as const,
+    description: achievement?.description || ''
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.title.trim() && formData.organization.trim()) {
+      onSave(formData);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="achievementTitle">Achievement Title</Label>
+        <Input
+          id="achievementTitle"
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          placeholder="e.g. Best Teacher Award, Research Excellence Award"
+          required
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="organization">Organization</Label>
+          <Input
+            id="organization"
+            value={formData.organization}
+            onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+            placeholder="e.g. University, Government, Professional Body"
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="achievementDate">Date Received</Label>
+          <Input
+            id="achievementDate"
+            type="date"
+            value={formData.date}
+            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            required
+          />
+        </div>
+      </div>
+      <div>
+        <Label htmlFor="category">Category</Label>
+        <select
+          id="category"
+          value={formData.category}
+          onChange={(e) => setFormData({ ...formData, category: e.target.value as Achievement['category'] })}
+          className="w-full mt-1 p-2 border border-input rounded-md bg-background"
+        >
+          <option value="Academic">Academic</option>
+          <option value="Research">Research</option>
+          <option value="Teaching">Teaching</option>
+          <option value="Leadership">Leadership</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div>
+        <Label htmlFor="achievementDescription">Description</Label>
+        <Textarea
+          id="achievementDescription"
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          placeholder="Describe the achievement and its significance..."
+          rows={3}
+        />
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button type="submit">Save Achievement</Button>
       </div>
     </form>
   );
