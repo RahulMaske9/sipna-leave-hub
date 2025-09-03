@@ -11,6 +11,7 @@ import {
   XCircle,
   Clock,
   Users,
+  User,
 } from "lucide-react"
 import { useLocation, NavLink } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
@@ -45,6 +46,11 @@ export function AppSidebar() {
       return [
         ...baseItems,
         {
+          title: "Profile",
+          url: "/profile",
+          icon: User,
+        },
+        {
           title: "Apply Leave",
           url: "/apply",
           icon: FileText,
@@ -70,6 +76,11 @@ export function AppSidebar() {
     if (user?.role === 'hod') {
       return [
         ...baseItems,
+        {
+          title: "Profile",
+          url: "/profile",
+          icon: User,
+        },
         {
           title: "Pending Requests",
           url: "/pending",

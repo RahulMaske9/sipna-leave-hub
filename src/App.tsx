@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Login from '@/pages/Login';
 import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
 import ApplyLeave from "./pages/ApplyLeave";
 import LeaveHistory from "./pages/LeaveHistory";
 import Calendar from "./pages/Calendar";
@@ -36,6 +37,7 @@ function AppContent() {
     <SidebarProvider>
       <Routes>
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute allowedRoles={['teacher', 'hod']}><Profile /></ProtectedRoute>} />
         <Route path="/apply" element={<ProtectedRoute allowedRoles={['teacher']}><ApplyLeave /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute allowedRoles={['teacher']}><LeaveHistory /></ProtectedRoute>} />
         <Route path="/pending" element={<ProtectedRoute allowedRoles={['hod', 'principal']}><PendingRequests /></ProtectedRoute>} />
